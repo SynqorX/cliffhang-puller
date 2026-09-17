@@ -1,50 +1,18 @@
-# 1. Ignore everything by default
-/*
-
-# 2. Whitelist project documentation and git metadata
-!.gitignore
-!README*
-#!GEMINI.md
-
-# 3. Whitelist build orchestration files
-!build.gradle*
-!settings.gradle*
-!gradle.properties
-!gradle/
-!gradle/wrapper/
-!gradle/wrapper/gradle-wrapper.jar
-!gradle/wrapper/gradle-wrapper.properties
-!gradlew
-!gradlew.bat
-
-# 4. Whitelist the app module directory structure
-!app/
-!app/build.gradle*
-!app/proguard-rules.pro
-app/*
-!app/src/
-app/src/*
-!app/src/main/
-app/src/main/*
-
-# 5. Whitelist essential source and manifest files
-# (1) AndroidManifest.xml
-!app/src/main/AndroidManifest.xml
-
-# (2 & 3) Kotlin source files
-!app/src/main/java/
-!app/src/main/java/**
-
-# (4) App values (strings.xml for app_name)
-!app/src/main/res/
-!app/src/main/res/values/
-!app/src/main/res/values/**
-
-# 6. Safety catch: build artifacts, caches, machine-specific SDK paths, and IDE configs
-local.properties
+# Built outputs and caches
 build/
 **/build/
 .gradle/
+
+# Machine-specific SDK configuration
+local.properties
+
+# Android Studio / IntelliJ IDE metadata
 .idea/
 *.iml
+
+# OS-generated files
 .DS_Store
+Thumbs.db
+
+# Capture crash/memory dumps if any occur
+*.hprof
