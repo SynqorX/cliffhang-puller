@@ -1,11 +1,12 @@
 # 1. Ignore everything by default
 /*
 
-# 2. Whitelist project metadata and git files
+# 2. Whitelist project documentation and git metadata
 !.gitignore
 !README*
+#!GEMINI.md
 
-# 3. Whitelist build files (required for Android Studio to recognize the project)
+# 3. Whitelist build orchestration files
 !build.gradle*
 !settings.gradle*
 !gradle.properties
@@ -26,7 +27,7 @@ app/src/*
 !app/src/main/
 app/src/main/*
 
-# 5. Whitelist the 4 specific files/folders you care about
+# 5. Whitelist essential source and manifest files
 # (1) AndroidManifest.xml
 !app/src/main/AndroidManifest.xml
 
@@ -34,12 +35,13 @@ app/src/main/*
 !app/src/main/java/
 !app/src/main/java/**
 
-# (4) Layout resources
+# (4) App values (strings.xml for app_name)
 !app/src/main/res/
-!app/src/main/res/layout/
-!app/src/main/res/layout/**
+!app/src/main/res/values/
+!app/src/main/res/values/**
 
-# 6. Safety catch: ignore build artifacts, caches, and IDE configs
+# 6. Safety catch: build artifacts, caches, machine-specific SDK paths, and IDE configs
+local.properties
 build/
 **/build/
 .gradle/
