@@ -6,8 +6,10 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -22,10 +24,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -34,8 +38,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -56,17 +63,33 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun YuktiScreen() {
     val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+
     var taskText by remember { mutableStateOf("") }
     var secondsText by remember { mutableStateOf("10") }
+    var hasOverlayPermission by remember { mutableStateOf(Settings.canDrawOverlays(context)) }
 
-    // Runtime permission launcher for Android 13+ (API 33+)
-    val permissionLauncher = rememberLauncherForActivityResult(
+    // Re-check overlay status whenever the user returns from system Settings
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                hasOverlayPermission = Settings.canDrawOverlays(context)
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    // Android 13+ (API 33+) Notification Permission Launcher
+    val notificationLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (!isGranted) {
             Toast.makeText(
                 context,
-                "Notification permission is required to deliver reminders.",
+                "Notification permission is required for task alerts.",
                 Toast.LENGTH_LONG
             ).show()
         }
@@ -79,7 +102,7 @@ fun YuktiScreen() {
                 Manifest.permission.POST_NOTIFICATIONS
             )
             if (status != PackageManager.PERMISSION_GRANTED) {
-                permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                notificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
         }
     }
@@ -96,7 +119,18 @@ fun YuktiScreen() {
             style = MaterialTheme.typography.headlineMedium
         )
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(20.dp))
+
+        // Toggle / Setup for Floating Overlays
+        if (!hasOverlayPermission) {
+            OutlinedButton(
+                onClick = { requestOverlayPermission(context) },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Enable 'Display Over Other Apps'")
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+        }
 
         OutlinedTextField(
             value = taskText,
@@ -131,6 +165,14 @@ fun YuktiScreen() {
     }
 }
 
+private fun requestOverlayPermission(context: Context) {
+    val intent = Intent(
+        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+        Uri.parse("package:${context.packageName}")
+    )
+    context.startActivity(intent)
+}
+
 private fun scheduleYuktiReminder(context: Context, taskName: String, delayMillis: Long) {
     val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
     val intent = Intent(context, ReminderReceiver::class.java).apply {
@@ -146,7 +188,6 @@ private fun scheduleYuktiReminder(context: Context, taskName: String, delayMilli
 
     val triggerAtMillis = System.currentTimeMillis() + delayMillis
 
-    // setExactAndAllowWhileIdle ensures it fires through Doze Mode on Android 8.0+
     alarmManager.setExactAndAllowWhileIdle(
         AlarmManager.RTC_WAKEUP,
         triggerAtMillis,
@@ -155,7 +196,7 @@ private fun scheduleYuktiReminder(context: Context, taskName: String, delayMilli
 
     Toast.makeText(
         context,
-        "Reminder armed for ${delayMillis / 1000} seconds from now",
+        "Reminder armed for ${delayMillis / 1000}s from now",
         Toast.LENGTH_SHORT
     ).show()
 }
